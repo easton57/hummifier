@@ -67,7 +67,7 @@ def image_clustering():
 
 def save_model(model) -> None:
     """ Method to save the trained model """
-    joblib.dump(model, 'models/hummifier.pkl')
+    joblib.dump(model, 'models/hummifier.pkl', compress=1)
 
 
 def load_model() -> GridSearchCV:
