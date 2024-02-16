@@ -15,7 +15,7 @@ from sklearn.metrics import classification_report
 def train(path) -> [list, list, GridSearchCV]:
     """ Method to train the hummingbird model """
     # Call to read images
-    ml_data = mr.read_images(path)
+    _, ml_data = mr.read_images(path)
 
     # image data
     x = ml_data.iloc[:, :-1]
@@ -46,13 +46,13 @@ def train(path) -> [list, list, GridSearchCV]:
     # Calculating the accuracy of the model
     accuracy = accuracy_score(y_pred, y_test)
 
-    # Print the accuracy of the model TODO Change to logging
+    # Print the accuracy of the model
     print(f"The model is {accuracy * 100}% accurate")
 
     return y_test, y_pred, model
 
 
-def inference(model):
+def inference(model) -> [str, float]:
     """ Method to evaluate an image or video stream """
 
 
@@ -60,6 +60,11 @@ def image_clustering():
     """ Method to cluster images to verify the effectiveness of the standardization """
 
 
-def print_classification_report(pred, test, labels):
+def save_model(model) -> None:
+    """ Method to save the trained model """
+    model.save('models')
+
+
+def print_classification_report(pred, test, labels) -> True:
     """ Print a classification report """
     print(classification_report(test, pred, target_names=labels))
