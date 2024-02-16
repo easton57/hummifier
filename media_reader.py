@@ -8,15 +8,9 @@ import pandas as pd
 from skimage.transform import resize
 from skimage.io import imread
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn import svm
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import classification_report
 
 
-def read_images(path) -> pd.DataFrame:
+def read_images(path) -> [list, pd.DataFrame]:
     """ Read an image and return to main """
     categories = os.listdir(path)
     in_arr = []
@@ -59,7 +53,7 @@ def read_images(path) -> pd.DataFrame:
     df = pd.DataFrame(flat_data)
     df['Target'] = target
 
-    return df
+    return categories, df
 
 
 def read_video_file():
