@@ -5,12 +5,19 @@ By: Easton Seidel
 
 import humming_ml
 import standardizer
+import media_reader as mr
 
 
 def main():
     """ Main Function """
+    # Call to read images
+    ml_data = mr.read_images('photos')
+
+
+def monitor_video():
     try:
-        pass
+        while True:
+            pass
     except KeyboardInterrupt:
         exit()
 
