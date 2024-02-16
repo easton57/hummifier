@@ -2,14 +2,13 @@
 ML trainer and inference file
 """
 
+import joblib
 import media_reader as mr
 import matplotlib.pyplot as plt
 
 from sklearn import svm
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import classification_report
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.metrics import accuracy_score, classification_report
 
 
 def train(path) -> [list, list, GridSearchCV]:
@@ -52,8 +51,14 @@ def train(path) -> [list, list, GridSearchCV]:
     return y_test, y_pred, model
 
 
-def inference(model) -> [str, float]:
+def inference(model, path) -> None:
     """ Method to evaluate an image or video stream """
+    labels, ml_data = mr.read_images(path)
+
+    probability = model.predict_proba(ml_data[0])
+    for ind, val in enumerate(labels):
+        print(f'{val} = {probability[0][ind] * 100}%')
+    print("The predicted image is : " + labels[model.predict(ml_data[0])[0]])
 
 
 def image_clustering():
@@ -62,7 +67,12 @@ def image_clustering():
 
 def save_model(model) -> None:
     """ Method to save the trained model """
-    model.save('models')
+    joblib.dump(model, 'models/hummifier.pkl')
+
+
+def load_model() -> GridSearchCV:
+    """ Method to load the model from a file """
+    return joblib.load('models/hummifier.pkl')
 
 
 def print_classification_report(pred, test, labels) -> True:
