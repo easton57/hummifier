@@ -1,64 +1,113 @@
 """
 ML trainer and inference file
 """
+import pathlib
 
-import joblib
-import media_reader as mr
 import matplotlib.pyplot as plt
+import numpy as np
+import PIL
+import tensorflow as tf
+import media_reader as mr
 
-from sklearn import svm
-from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.models import Sequential
 
 
-def train(path) -> [list, list, GridSearchCV]:
+def train_photo(path, plot=False) -> Sequential:
     """ Method to train the hummingbird model """
+    # Some default parameters
+    batch_size = 32
+    img_height = 180
+    img_width = 180
+
     # Call to read images
-    _, ml_data = mr.read_images(path)
+    path = pathlib.Path(path).with_suffix('')
 
-    # image data
-    x = ml_data.iloc[:, :-1]
+    # training dataset
+    train_ds = tf.keras.utils.image_dataset_from_directory(
+        path,
+        validation_split=0.2,
+        subset="training",
+        seed=123,
+        image_size=(img_height, img_width),
+        batch_size=batch_size)
 
-    # labels
-    y = ml_data.iloc[:, -1]
+    # Validation dataset
+    val_ds = tf.keras.utils.image_dataset_from_directory(
+        path,
+        validation_split=0.2,
+        subset="validation",
+        seed=123,
+        image_size=(img_height, img_width),
+        batch_size=batch_size)
 
-    # 80:20 split on train and test data
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, random_state=77, stratify=y)
+    # The category names
+    class_names = train_ds.class_names
 
-    # Defining the parameters grid for GridSearchCV
-    param_grid = {'C': [0.1, 1, 10, 100],
-                  'gamma': [0.0001, 0.001, 0.1, 1],
-                  'kernel': ['rbf', 'poly']}
+    # Set the data to stay in memory
+    AUTOTUNE = tf.data.AUTOTUNE
 
-    # Creating a support vector classifier
-    svc = svm.SVC(probability=True)
+    train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+    val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-    # Creating a model using GridSearchCV with the parameters grid
-    model = GridSearchCV(svc, param_grid)
+    # Define our model
+    num_classes = len(class_names)
 
-    # Training the model using the training data
-    model.fit(x_train, y_train)
+    model = Sequential([
+        layers.Rescaling(1. / 255, input_shape=(img_height, img_width, 3)),  # Standardization layer
+        layers.Conv2D(16, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(32, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(64, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dense(num_classes)
+    ])
 
-    # Testing the model using the testing data
-    y_pred = model.predict(x_test)
+    model.compile(optimizer='adam',
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                  metrics=['accuracy'])
 
-    # Calculating the accuracy of the model
-    accuracy = accuracy_score(y_pred, y_test)
+    # Train the model
+    epochs = 10
+    history = model.fit(
+        train_ds,
+        validation_data=val_ds,
+        epochs=epochs
+    )
 
-    # Print the accuracy of the model
-    print(f"The model is {accuracy * 100}% accurate")
+    # Show the results if wanted
+    if plot:
+        acc = history.history['accuracy']
+        val_acc = history.history['val_accuracy']
 
-    return y_test, y_pred, model
+        loss = history.history['loss']
+        val_loss = history.history['val_loss']
+
+        epochs_range = range(epochs)
+
+        plt.figure(figsize=(8, 8))
+        plt.subplot(1, 2, 1)
+        plt.plot(epochs_range, acc, label='Training Accuracy')
+        plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+        plt.legend(loc='lower right')
+        plt.title('Training and Validation Accuracy')
+
+        plt.subplot(1, 2, 2)
+        plt.plot(epochs_range, loss, label='Training Loss')
+        plt.plot(epochs_range, val_loss, label='Validation Loss')
+        plt.legend(loc='upper right')
+        plt.title('Training and Validation Loss')
+        plt.show()
+
+    return model
 
 
-def inference(model, path) -> None:
+def infer_photo(model, path) -> None:
     """ Method to evaluate an image or video stream """
-    labels, ml_data = mr.read_images(path)
-
-    probability = model.predict_proba(ml_data[0])
-    for ind, val in enumerate(labels):
-        print(f'{val} = {probability[0][ind] * 100}%')
-    print("The predicted image is : " + labels[model.predict(ml_data[0])[0]])
 
 
 def image_clustering():
@@ -67,14 +116,9 @@ def image_clustering():
 
 def save_model(model) -> None:
     """ Method to save the trained model """
-    joblib.dump(model, 'models/hummifier.pkl', compress=1)
+    model.save('models/hummifier.pkl')
 
 
-def load_model() -> GridSearchCV:
+def load_model() -> Sequential:
     """ Method to load the model from a file """
-    return joblib.load('models/hummifier.pkl')
-
-
-def print_classification_report(pred, test, labels) -> True:
-    """ Print a classification report """
-    print(classification_report(test, pred, target_names=labels))
+    return tf.keras.models.load_model('models/hummifier.pkl')
