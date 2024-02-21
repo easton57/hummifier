@@ -14,7 +14,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 
 
-def train_photo(path, plot=False) -> Sequential:
+def train_photo(path, plot=False) -> [Sequential, list]:
     """ Method to train the hummingbird model """
     # Some default parameters
     batch_size = 32
@@ -51,10 +51,23 @@ def train_photo(path, plot=False) -> Sequential:
     train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
+    # Image augmentation
+    data_augmentation = keras.Sequential(
+        [
+            layers.RandomFlip("horizontal",
+                              input_shape=(img_height,
+                                           img_width,
+                                           3)),
+            layers.RandomRotation(0.1),
+            layers.RandomZoom(0.1),
+        ]
+    )
+
     # Define our model
     num_classes = len(class_names)
 
     model = Sequential([
+        data_augmentation,
         layers.Rescaling(1. / 255, input_shape=(img_height, img_width, 3)),  # Standardization layer
         layers.Conv2D(16, 3, padding='same', activation='relu'),
         layers.MaxPooling2D(),
@@ -103,11 +116,27 @@ def train_photo(path, plot=False) -> Sequential:
         plt.title('Training and Validation Loss')
         plt.show()
 
-    return model
+    return model, class_names
 
 
-def infer_photo(model, path) -> None:
+def infer_photo(model, image_path, class_names) -> None:
     """ Method to evaluate an image or video stream """
+    img_height = 180
+    img_width = 180
+
+    img = tf.keras.utils.load_img(
+        image_path, target_size=(img_height, img_width)
+    )
+    img_array = tf.keras.utils.img_to_array(img)
+    img_array = tf.expand_dims(img_array, 0)  # Create a batch
+
+    predictions = model.predict(img_array)
+    score = tf.nn.softmax(predictions[0])
+
+    print(
+        "This image most likely belongs to {} with a {:.2f} percent confidence."
+        .format(class_names[np.argmax(score)], 100 * np.max(score))
+    )
 
 
 def image_clustering():
