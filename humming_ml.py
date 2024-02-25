@@ -152,10 +152,21 @@ class HummingMLPhoto:
     def image_clustering(self, ):
         """ Method to cluster images to verify the effectiveness of the standardization """
 
-    def save_model(self, model) -> None:
+    def save_model(self) -> None:
         """ Method to save the trained model """
-        model.save(f'models/{self.model_name}.pkl')
+        self.model.save(f'models/{self.model_name}.pkl')
 
-    def load_model(self, ):
+    def load_model(self):
         """ Method to load the model from a file """
         self.model = tf.keras.models.load_model(f'models/{self.model_name}.pkl')
+
+
+class HummingMLVideo:
+    def __init__(self, model_name, load=False):
+        self.model_name = model_name
+        self.model = None
+        self.class_names = None
+
+        if load:
+            self.load_model()
+
