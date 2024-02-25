@@ -1,11 +1,19 @@
 """
-ML trainer and inference file
+ML trainer and inference file for video and photo
 """
+import tqdm
+import random
 import pathlib
+import itertools
+import collections
 
-import matplotlib.pyplot as plt
+import cv2
+import einops
 import numpy as np
+import remotezip as rz
+import seaborn as sns
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -126,7 +134,7 @@ class HummingMLPhoto:
         self.model = model
         self.class_names = class_names
 
-    def infer_photo(self, image_path) -> None:
+    def infer_photo(self, image_path):
         """ Method to evaluate an image or video stream """
         if self.model is None:
             print("No model has been loaded! Train one or load one from the models directory...")
@@ -152,13 +160,23 @@ class HummingMLPhoto:
     def image_clustering(self, ):
         """ Method to cluster images to verify the effectiveness of the standardization """
 
-    def save_model(self) -> None:
+    def define_model_name(self, file_name):
+        """ Method to change the file name for the model """
+        self.model_name = file_name
+
+    def save_model(self):
         """ Method to save the trained model """
-        self.model.save(f'models/{self.model_name}.pkl')
+        if 'photo' in self.model_name:
+            self.model.save(f'models/{self.model_name}.pkl')
+        else:
+            self.model.save(f'models/{self.model_name}_photo.pkl')
 
     def load_model(self):
         """ Method to load the model from a file """
-        self.model = tf.keras.models.load_model(f'models/{self.model_name}.pkl')
+        try:
+            self.model = tf.keras.models.load_model(f'models/{self.model_name}.pkl')
+        except FileNotFoundError:
+            print("Model of that name doesn't exist. Verify file name and try again.")
 
 
 class HummingMLVideo:
@@ -169,4 +187,15 @@ class HummingMLVideo:
 
         if load:
             self.load_model()
+
+    def train_model(self, path):
+        """ Method for training a video model """
+
+    def save_model(self):
+        """ Method to save the trained model """
+        self.model.save(f'models/{self.model_name}.pkl')
+
+    def load_model(self):
+        """ Method to load the model from a file """
+        self.model = tf.keras.models.load_model(f'models/{self.model_name}.pkl')
 
