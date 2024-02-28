@@ -1,4 +1,6 @@
-""" File for splitting large video files into smaller trainable videos """
+""" File for splitting large video files into smaller trainable frames """
+import cv2
+
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
@@ -24,3 +26,22 @@ def split_video(file_name, increment, vid_num):
                                start_time,
                                end_time,
                                targetname=f"train_video/outside_window_{vid_num}_{time[0]}-{time[1]}.mp4")
+
+
+def video_to_frames(file_name):
+    # Get our length in seconds
+    capture = cv2.VideoCapture(file_name)
+    frame_nr = 0
+
+    while (True):
+        # Get the frame
+        success, frame = capture.read()
+
+        if success:
+            cv2.imwrite(f'unsorted_photos/frame_{frame_nr}.jpg', frame)
+        else:
+            break
+
+        frame_nr += 1
+
+    capture.release()
